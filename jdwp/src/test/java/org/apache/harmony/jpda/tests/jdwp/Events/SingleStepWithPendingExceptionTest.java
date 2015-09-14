@@ -77,7 +77,7 @@ public class SingleStepWithPendingExceptionTest extends JDWPEventTestCase {
         assertEquals("Invalid location's method", catchMethodId, catchHandlerLocation.methodID);
 
         // Remove exception request.
-        debuggeeWrapper.vmMirror.clearEvent(JDWPConstants.EventKind.EXCEPTION, exceptionRequestId);
+        clearEvent(JDWPConstants.EventKind.EXCEPTION, exceptionRequestId, true);
 
         // Install breakpoint at begin of throwMethod.
         int breakpointRequestId = debuggeeWrapper.vmMirror.setBreakpointAtMethodBegin(refTypeID,
@@ -90,8 +90,7 @@ public class SingleStepWithPendingExceptionTest extends JDWPEventTestCase {
         long threadId = debuggeeWrapper.vmMirror.waitForBreakpoint(breakpointRequestId);
 
         // Single-step OUT of the throwMethod.
-        debuggeeWrapper.vmMirror.setStep(new String[0], threadId, JDWPConstants.StepSize.LINE,
-                JDWPConstants.StepDepth.OUT);
+        int singleStepRequestId = setSingleStepOut(threadId);
 
         // Breakpoint event suspended all threads: resume them now.
         debuggeeWrapper.resume();
@@ -112,6 +111,9 @@ public class SingleStepWithPendingExceptionTest extends JDWPEventTestCase {
                     " but was " + singleStepLocation);
         }
 
+        // Remove single-step request.
+        clearEvent(JDWPConstants.EventKind.SINGLE_STEP, singleStepRequestId, true);
+
         logWriter.println("==> Resuming debuggee");
         resumeDebuggee();
         logWriter.println("==> testSingleStepWithPendingException PASSED!");
@@ -122,6 +124,13 @@ public class SingleStepWithPendingExceptionTest extends JDWPEventTestCase {
                 getClassSignature(SingleStepWithPendingExceptionDebuggee.DebuggeeException.class),
                 true, true);
         checkReplyPacket(replyPacket, "Failed to set EXCEPTION event request");
+        return replyPacket.getNextValueAsInt();
+    }
+
+    private int setSingleStepOut(long threadId) {
+        ReplyPacket replyPacket = debuggeeWrapper.vmMirror.setStep(new String[0], threadId,
+                JDWPConstants.StepSize.LINE, JDWPConstants.StepDepth.OUT);
+        checkReplyPacket(replyPacket, "Failed to set SINGLE_STEP OUT event request");
         return replyPacket.getNextValueAsInt();
     }
 }
