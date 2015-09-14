@@ -88,7 +88,7 @@ public class EventWithExceptionTest extends JDWPEventTestCase {
                 ((ParsedEvent.Event_EXCEPTION) exceptionEvent).getCatchLocation();
 
         // Remove EXCEPTION event.
-        clearExceptionRequest(exceptionRequestId);
+        clearEvent(JDWPConstants.EventKind.EXCEPTION, exceptionRequestId, true);
 
         // Resume debuggee suspended on EXCEPTION event.
         logWriter.println("Resume debuggee after EXCEPTION event");
@@ -109,6 +109,9 @@ public class EventWithExceptionTest extends JDWPEventTestCase {
         // Check location of BREAKPOINT event.
         Location eventLocation = ((ParsedEvent.EventThreadLocation) breakpointEvent).getLocation();
         assertEquals("Not the expected location", catchHandlerLocation, eventLocation);
+
+        // Remove BREAKPOINT request.
+        clearEvent(JDWPConstants.EventKind.BREAKPOINT, breakpointRequestId, true);
 
         // Resume debuggee suspended on BREAKPOINT event.
         logWriter.println("Resume debuggee after BREAKPOINT event");
@@ -166,6 +169,9 @@ public class EventWithExceptionTest extends JDWPEventTestCase {
         // Check location of BREAKPOINT event.
         Location eventLocation = ((ParsedEvent.EventThreadLocation) breakpointEvent).getLocation();
         assertEquals("Not the expected location", catchHandlerLocation, eventLocation);
+
+        // Remove BREAKPOINT request.
+        clearEvent(JDWPConstants.EventKind.BREAKPOINT, breakpointRequestId, true);
 
         // Resume debuggee suspended on BREAKPOINT event.
         logWriter.println("Resume debuggee after BREAKPOINT event");
@@ -251,12 +257,15 @@ public class EventWithExceptionTest extends JDWPEventTestCase {
         debuggeeWrapper.resume();
 
         // Wait for SINGLE_STEP.
-        ParsedEvent breakpointEvent = waitForEvent(JDWPConstants.EventKind.SINGLE_STEP,
+        ParsedEvent singleStepEvent = waitForEvent(JDWPConstants.EventKind.SINGLE_STEP,
                 singleStepRequestId);
 
         // Check location of SINGLE_STEP event.
-        Location eventLocation = ((ParsedEvent.EventThreadLocation) breakpointEvent).getLocation();
+        Location eventLocation = ((ParsedEvent.EventThreadLocation) singleStepEvent).getLocation();
         assertEquals("Not the expected location, ", catchHandlerLocation, eventLocation);
+
+        // Remove SINGLE_STEP request.
+        clearEvent(JDWPConstants.EventKind.SINGLE_STEP, singleStepRequestId, true);
 
         // Resume debuggee suspended on SINGLE_STEP event.
         logWriter.println("Resume debuggee after SINGLE_STEP event");
@@ -313,6 +322,9 @@ public class EventWithExceptionTest extends JDWPEventTestCase {
         assertEquals("Invalid class ID", classId, eventLocation.classID);
         assertEquals("Invalid method ID", methodId, eventLocation.methodID);
 
+        // Remove FIELD watchpoint request.
+        clearEvent(fieldEventKind, fieldWatchpointRequestId, true);
+
         // Resume debuggee suspended on FIELD event.
         logWriter.println("Resume debuggee after " +
                 JDWPConstants.EventKind.getName(fieldEventKind) + " event");
@@ -367,6 +379,9 @@ public class EventWithExceptionTest extends JDWPEventTestCase {
         long methodId = getMethodID(classId, TEST_METHOD_NAME);
         checkLocation(classId, methodId, eventLocation);
 
+        // Remove METHOD_EXIT request.
+        clearEvent(methodExitEventKind, methodExitRequestId, true);
+
         // Resume debuggee suspended on METHOD_EXIT event.
         logWriter.println("Resume debuggee after " +
                 JDWPConstants.EventKind.getName(methodExitEventKind) + " event");
@@ -389,14 +404,6 @@ public class EventWithExceptionTest extends JDWPEventTestCase {
                     expectedClassName, expectedMethodName, expectedClassId, expectedMethodId,
                     actualClassName, actualMethodName, actualLocation.classID, actualLocation.methodID));
         }
-    }
-
-    private void clearExceptionRequest(int requestId) {
-        logWriter.println("Clear EXCEPTION request " + requestId);
-        ReplyPacket replyPacket =
-                debuggeeWrapper.vmMirror.clearEvent(JDWPConstants.EventKind.EXCEPTION, requestId);
-        checkReplyPacket(replyPacket, "Failed to clear EXCEPTION event");
-        assertAllDataRead(replyPacket);
     }
 
     private int setException() {
